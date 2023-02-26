@@ -15,15 +15,16 @@ from torch.nn import functional as F
 torch.manual_seed(1337)
 
 # HYPERPARAMETERS
-batch_size = 32
-block_size = 8
+batch_size = 64
+block_size = 256
 max_iters = 5000
-eval_intervals = 300
-learning_rate = 1e-3
+eval_intervals = 500
+learning_rate = 3e-4
 device = 'cpu'
 eval_iters = 200
-n_embd = 32
-head_size = 32
+n_embd = 384
+n_layers = 6
+n_heads = 6
 dropout = 0.2
 
 # Importing the text dataset
@@ -126,7 +127,7 @@ class FeedForward(nn.Module):
 class Block(nn.Module):
     def __init__(self) -> None:
        super().__init__()
-       self.sa_heads = MultiHead(4, head_size//4)
+       self.sa_heads = MultiHead(n_heads, n_embd//n_heads)
        self.ffwd = FeedForward(n_embd)
        self.ln1 = nn.LayerNorm(n_embd)
        self.ln2 = nn.LayerNorm(n_embd)
@@ -144,12 +145,8 @@ class BigramLanguageModel(nn.Module):
     self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
     self.positional_encoding = nn.Embedding(block_size, n_embd)
     self.lm_head = nn.Linear(n_embd, vocab_size)
-    self.blocks = nn.Sequential(
-        Block(), 
-        Block(), 
-        Block(),
-        nn.LayerNorm(n_embd)
-    )
+    self.layer_norm = nn.LayerNorm(n_embd)
+    self.blocks = nn.Sequential(*[Block() for _ in range(n_layers)])
     
   # Overriding Forward method of nn.Module class
   def forward(self, idx, target=None):
@@ -162,6 +159,7 @@ class BigramLanguageModel(nn.Module):
     # x = self.mh_self_att(x) # Performs a multiheaded self attention
     # x = self.ffwd(x) # Adding a feed forward layer in the network
     x = self.blocks(x)
+    x = self.layer_norm(x)
     logits = self.lm_head(x) # Performs a simple linear transformation (B, T, n_embd) -> (B, T, vocab_size)
     
     if target == None :
