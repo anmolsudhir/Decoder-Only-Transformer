@@ -17,15 +17,15 @@ torch.manual_seed(1337)
 # HYPERPARAMETERS
 batch_size = 64
 block_size = 256
-max_iters = 5000
+max_iters = 3000
 eval_intervals = 500
 learning_rate = 3e-4
-device = 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
 n_embd = 384
 n_layers = 6
 n_heads = 6
-dropout = 0.2
+dropout = 0
 
 # Importing the text dataset
 with open('input.txt', 'r') as f:
@@ -55,6 +55,8 @@ def get_batch(split):
   ix = torch.randint(len(data) - block_size, (batch_size, )) # Randomly generating batch's starting point
   x = torch.stack([data[i:i+block_size] for i in ix]) # Generating context blocks (list of inputs) from randomly generated batch starting point
   y = torch.stack([data[i+1: i+1+block_size] for i in ix]) # Generating Target for context blocks
+  x = x.to(device)
+  y = y.to(device)
   return x, y
 
 @torch.no_grad() # Instructing PyTorch not to run the below function while backpropogating the nn
@@ -71,7 +73,7 @@ def estimate_loss():
   m.train() # Putting the model in training mode
   return out
 
-#Creating a class single headed self attension
+#Creating a class single headed self attention
 class SelfAttention(nn.Module):
     def __init__(self,head_size) -> None:
       super().__init__()
@@ -189,12 +191,16 @@ m = model.to(device) # Porting model and model variables to device type
 # Creating an optimizer object to optimize model
 optimizer = torch.optim.AdamW(m.parameters(), lr = learning_rate)
 
+loss_text = ""
+
 # Training the created model
 for iter in range(max_iters):
   # Evaluating average loss at every eval_interval = 300
   if iter%eval_intervals == 0:
     losses = estimate_loss()
-    print(f"step {iter} : train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+    print(f"step {iter} : train loss {losses['train']:.4f}, val loss {losses['val']:.4f}\n")
+    loss_text = loss_text + f"step {iter} : train loss {losses['train']:.4f}, val loss {losses['val']:.4f}\n"
+    
   
   # creating random batches of data
   xb, yb = get_batch('train')
@@ -204,8 +210,16 @@ for iter in range(max_iters):
   loss.backward() # Backpropogating
   optimizer.step() # Optimizing model's parameters
 
+with open('output.txt', 'w') as file:
+  file.write(loss_text)
+
 # Creating initial context
 context = torch.zeros((1, 1), dtype = torch.long, device = device)
 
 # Generating Next token and decoding it to string/chars
-print(decode(m.generate(context, max_new_tokens=1000)[0].tolist()))
+with open('output.txt', 'w') as file:
+  file.write((decode(m.generate(context, max_new_tokens=50000)[0].tolist())))
+
+# Saving the trained model
+file_name = 'gpt_model.pt'
+torch.save(m.state_dict(), f"/content/gdrive/MyDrive/{file_name}")
