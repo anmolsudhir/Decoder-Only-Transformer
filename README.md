@@ -10,7 +10,7 @@ This project uses pytorch library
 
 ## Sample Outputs
 
-Sample output has been written in to sample_torch_output.txt
+###### Sample output has been written in to sample_torch_output.txt
     Generated 50,000 new tokens
     Hyperparameters set for this sample generations are : 
 
@@ -26,5 +26,5 @@ Sample output has been written in to sample_torch_output.txt
         > n_heads = 6 # Number of head in multi-head self attention
         > dropout = 0.2 # Fraction of neuron to be dropped when backpropogating
 
-Sample output loss is written to sample_torch_outpu_loss.txt
-    It contains loss at every 'eval_interval' iteration
+###### Sample output loss is written to sample_torch_outpu_loss.txt
+    > It contains loss at every 'eval_interval' iteration
